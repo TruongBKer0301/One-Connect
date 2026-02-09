@@ -3,10 +3,11 @@ body {
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    height: 100vh;
+    min-height: 100vh;
+    min-height: 100dvh;
     background-color: rgb(0, 83, 83);
     margin: 0;
-    overflow: hidden;
+    overflow: auto;
 }
 
 section {
@@ -16,7 +17,11 @@ section {
     align-items: center;
     justify-content: center;
     gap: 16px;
-    height: 100vh;
+    min-height: 100vh;
+    min-height: 100dvh;
+    width: 100%;
+    padding: 16px 12px 24px;
+    box-sizing: border-box;
 }
 
 #control-bar {
@@ -26,6 +31,7 @@ section {
     align-items: center;
     justify-content: center;
     gap: 8px;
+    width: min(92vw, 720px);
 }
 
 #game-section {
@@ -33,6 +39,8 @@ section {
     display: flex;
     justify-content: center;
     align-items: center;
+    position: relative;
+    transform-origin: top center;
 }
 
 #game-overlay-canvas {
@@ -46,6 +54,39 @@ section {
 
 #notify-text {
     text-align: center;
+    color: #ffffff;
+    margin: 0;
+}
+
+#time-bar {
+    position: relative;
+    width: 100%;
+    height: 16px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.18);
+    overflow: hidden;
+    box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.35);
+}
+
+#time-bar-fill {
+    height: 100%;
+    width: 100%;
+    background: linear-gradient(90deg, #42e695, #fdd835, #ff5f6d);
+    transition: width 0.25s linear;
+}
+
+#time-text {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    color: #ffffff;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+    pointer-events: none;
 }
 
 #new-game-button {

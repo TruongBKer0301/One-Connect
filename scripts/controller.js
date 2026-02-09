@@ -9,6 +9,10 @@ import { createDisplayElement, newTableCellElement, newTableElement } from "./ht
 const clickSound = document.querySelector("#click-sound");
 const matchSound = document.querySelector("#match-sound");
 let audioUnlocked = false;
+const TIME_LIMIT_SECONDS = 180;
+let timerId = null;
+let timeLeftSeconds = TIME_LIMIT_SECONDS;
+let gameActive = true;
 function unlockAudio() {
     if (audioUnlocked)
         return;
@@ -33,6 +37,55 @@ function unlockAudio() {
             sound.volume = 1;
         }
     });
+}
+function formatTime(seconds) {
+    const minutes = Math.floor(seconds / 60);
+    const remainder = Math.max(0, seconds % 60);
+    return `${String(minutes).padStart(2, "0")}:${String(remainder).padStart(2, "0")}`;
+}
+function updateTimeUI() {
+    const fill = document.querySelector("#time-bar-fill");
+    const text = document.querySelector("#time-text");
+    if (fill) {
+        const percent = Math.max(0, (timeLeftSeconds / TIME_LIMIT_SECONDS) * 100);
+        fill.style.width = `${percent}%`;
+    }
+    if (text)
+        text.textContent = formatTime(timeLeftSeconds);
+}
+function stopTimer() {
+    if (timerId != null) {
+        clearInterval(timerId);
+        timerId = null;
+    }
+}
+function startTimer() {
+    stopTimer();
+    timeLeftSeconds = TIME_LIMIT_SECONDS;
+    updateTimeUI();
+    timerId = setInterval(() => {
+        timeLeftSeconds -= 1;
+        updateTimeUI();
+        if (timeLeftSeconds <= 0) {
+            stopTimer();
+            gameActive = false;
+            notify("Time's up!", false);
+        }
+    }, 1000);
+}
+function applyResponsiveScale() {
+    const gameSection = document.querySelector("#game-section");
+    const controlBar = document.querySelector("#control-bar");
+    if (!gameSection)
+        return;
+    const baseWidth = HORIZON_AMOUNT * (TILE_SIZE + TILE_SPACE) + TILE_SPACE;
+    const baseHeight = VERTICAL_AMOUNT * (TILE_SIZE + TILE_SPACE) + TILE_SPACE;
+    const availableWidth = window.innerWidth - 24;
+    const availableHeight = window.innerHeight - (controlBar === null || controlBar === void 0 ? void 0 : controlBar.offsetHeight) - 32;
+    const scale = Math.min(availableWidth / baseWidth, availableHeight / baseHeight, 1);
+    gameSection.style.width = `${baseWidth}px`;
+    gameSection.style.height = `${baseHeight}px`;
+    gameSection.style.transform = `scale(${scale})`;
 }
 function playClickSound() {
     if (!clickSound)
@@ -140,7 +193,7 @@ function getActive() {
     return activePosition;
 }
 function onClick(x, y) {
-    if (!isPresent(x, y))
+    if (!gameActive || !isPresent(x, y))
         return;
     unlockAudio();
     playClickSound();
@@ -180,6 +233,8 @@ function onMatch(first, second, connection) {
         if (isNoMoreTile()) {
             notify("You win!!", false);
             displayAllCell();
+            gameActive = false;
+            stopTimer();
         }
         else {
             shuffleUntilAnyMatch();
@@ -231,6 +286,8 @@ function newGame() {
     let gameContainer = document.querySelector("#game-container");
     gameContainer.innerHTML = "";
     gameContainer.appendChild(newTable());
+    gameActive = true;
+    startTimer();
     gameContainer.style.width = `${HORIZON_AMOUNT * (TILE_SIZE + TILE_SPACE) + TILE_SPACE}px`;
     gameContainer.style.height = `${VERTICAL_AMOUNT * (TILE_SIZE + TILE_SPACE) + TILE_SPACE}px`;
     let gameOverlayCanvas = document.querySelector("#game-overlay-canvas");
@@ -240,12 +297,14 @@ function newGame() {
     gameOverlayCanvas.height = (VERTICAL_AMOUNT + 2) * (TILE_SIZE + TILE_SPACE);
     shuffleUntilAnyMatch();
     removeNotifyText();
+    applyResponsiveScale();
 }
 function main() {
     newGame();
     document.querySelector("#new-game-button").addEventListener("click", () => {
         newGame();
     });
+    window.addEventListener("resize", applyResponsiveScale);
 }
 function debug() {
     window.getList = getList;

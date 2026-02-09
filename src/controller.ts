@@ -28,6 +28,10 @@ import { createDisplayElement, newTableCellElement, newTableElement } from "./ht
 const clickSound = document.querySelector<HTMLAudioElement>("#click-sound");
 const matchSound = document.querySelector<HTMLAudioElement>("#match-sound");
 let audioUnlocked = false;
+const TIME_LIMIT_SECONDS = 180;
+let timerId: number | null = null;
+let timeLeftSeconds = TIME_LIMIT_SECONDS;
+let gameActive = true;
 
 function unlockAudio() {
   if (audioUnlocked) return;
@@ -51,6 +55,66 @@ function unlockAudio() {
       sound.volume = 1;
     }
   });
+}
+
+function formatTime(seconds: number): string {
+  const minutes = Math.floor(seconds / 60);
+  const remainder = Math.max(0, seconds % 60);
+  return `${String(minutes).padStart(2, "0")}:${String(remainder).padStart(2, "0")}`;
+}
+
+function updateTimeUI() {
+  const fill = document.querySelector<HTMLDivElement>("#time-bar-fill");
+  const text = document.querySelector<HTMLSpanElement>("#time-text");
+  if (fill) {
+    const percent = Math.max(0, (timeLeftSeconds / TIME_LIMIT_SECONDS) * 100);
+    fill.style.width = `${percent}%`;
+  }
+  if (text) text.textContent = formatTime(timeLeftSeconds);
+}
+
+function stopTimer() {
+  if (timerId != null) {
+    clearInterval(timerId);
+    timerId = null;
+  }
+}
+
+function startTimer() {
+  stopTimer();
+  timeLeftSeconds = TIME_LIMIT_SECONDS;
+  updateTimeUI();
+  timerId = setInterval(() => {
+    timeLeftSeconds -= 1;
+    updateTimeUI();
+    if (timeLeftSeconds <= 0) {
+      stopTimer();
+      gameActive = false;
+      notify("Time's up!", false);
+    }
+  }, 1000) as unknown as number;
+}
+
+function applyResponsiveScale() {
+  const gameSection = document.querySelector<HTMLDivElement>("#game-section");
+  const controlBar = document.querySelector<HTMLDivElement>("#control-bar");
+  if (!gameSection) return;
+
+  const baseWidth = HORIZON_AMOUNT * (TILE_SIZE + TILE_SPACE) + TILE_SPACE;
+  const baseHeight = VERTICAL_AMOUNT * (TILE_SIZE + TILE_SPACE) + TILE_SPACE;
+  const availableWidth = window.innerWidth - 24;
+  const availableHeight =
+    window.innerHeight - (controlBar?.offsetHeight ?? 0) - 32;
+
+  const scale = Math.min(
+    availableWidth / baseWidth,
+    availableHeight / baseHeight,
+    1
+  );
+
+  gameSection.style.width = `${baseWidth}px`;
+  gameSection.style.height = `${baseHeight}px`;
+  gameSection.style.transform = `scale(${scale})`;
 }
 
 function playClickSound() {
@@ -190,7 +254,7 @@ function getActive(): HTMLTableCellElement | null {
 }
 
 function onClick(x: number, y: number) {
-  if (!isPresent(x, y)) return;
+  if (!gameActive || !isPresent(x, y)) return;
   unlockAudio();
   playClickSound();
   if (isFirstClick()) onSecondClick(x, y);
@@ -236,6 +300,8 @@ function onMatch(
     if (isNoMoreTile()) {
       notify("You win!!", false);
       displayAllCell();
+      gameActive = false;
+      stopTimer();
     } else {
       shuffleUntilAnyMatch();
     }
@@ -291,6 +357,9 @@ function newGame() {
   gameContainer.innerHTML = "";
   gameContainer.appendChild(newTable());
 
+  gameActive = true;
+  startTimer();
+
   gameContainer.style.width = `${
     HORIZON_AMOUNT * (TILE_SIZE + TILE_SPACE) + TILE_SPACE
   }px`;
@@ -313,6 +382,7 @@ function newGame() {
 
   shuffleUntilAnyMatch();
   removeNotifyText();
+  applyResponsiveScale();
 }
 
 function main() {
@@ -320,6 +390,7 @@ function main() {
   document.querySelector("#new-game-button")!.addEventListener("click", () => {
     newGame();
   });
+  window.addEventListener("resize", applyResponsiveScale);
 }
 
 declare global {

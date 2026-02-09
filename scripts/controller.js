@@ -8,11 +8,13 @@ import { isOneLineConnecting, isPresent, isThreeLineConnecting, isTwoLineConnect
 import { createDisplayElement, newTableCellElement, newTableElement } from "./html-helper.js";
 const clickSound = document.querySelector("#click-sound");
 const matchSound = document.querySelector("#match-sound");
+const bgSound = document.querySelector("#bg-sound");
 let audioUnlocked = false;
-const TIME_LIMIT_SECONDS = 180;
+const TIME_LIMIT_SECONDS = 900;
 let timerId = null;
 let timeLeftSeconds = TIME_LIMIT_SECONDS;
 let gameActive = true;
+let bgRetryId = null;
 function unlockAudio() {
     if (audioUnlocked)
         return;
@@ -37,6 +39,31 @@ function unlockAudio() {
             sound.volume = 1;
         }
     });
+}
+function startBackgroundMusic() {
+    if (!bgSound)
+        return;
+    bgSound.loop = true;
+    bgSound.muted = false;
+    bgSound.volume = 1;
+    if (!bgSound.paused)
+        return;
+    void bgSound.play().catch(() => undefined);
+}
+function ensureBackgroundMusic() {
+    if (!bgSound)
+        return;
+    startBackgroundMusic();
+    if (bgRetryId != null)
+        return;
+    bgRetryId = setInterval(() => {
+        if (!bgSound.paused) {
+            clearInterval(bgRetryId);
+            bgRetryId = null;
+            return;
+        }
+        startBackgroundMusic();
+    }, 1000);
 }
 function formatTime(seconds) {
     const minutes = Math.floor(seconds / 60);
@@ -288,6 +315,7 @@ function newGame() {
     gameContainer.appendChild(newTable());
     gameActive = true;
     startTimer();
+    ensureBackgroundMusic();
     gameContainer.style.width = `${HORIZON_AMOUNT * (TILE_SIZE + TILE_SPACE) + TILE_SPACE}px`;
     gameContainer.style.height = `${VERTICAL_AMOUNT * (TILE_SIZE + TILE_SPACE) + TILE_SPACE}px`;
     let gameOverlayCanvas = document.querySelector("#game-overlay-canvas");
@@ -305,6 +333,7 @@ function main() {
         newGame();
     });
     window.addEventListener("resize", applyResponsiveScale);
+    ensureBackgroundMusic();
 }
 function debug() {
     window.getList = getList;

@@ -27,11 +27,13 @@ import { createDisplayElement, newTableCellElement, newTableElement } from "./ht
 
 const clickSound = document.querySelector<HTMLAudioElement>("#click-sound");
 const matchSound = document.querySelector<HTMLAudioElement>("#match-sound");
+const bgSound = document.querySelector<HTMLAudioElement>("#bg-sound");
 let audioUnlocked = false;
-const TIME_LIMIT_SECONDS = 180;
+const TIME_LIMIT_SECONDS = 900;
 let timerId: number | null = null;
 let timeLeftSeconds = TIME_LIMIT_SECONDS;
 let gameActive = true;
+let bgRetryId: number | null = null;
 
 function unlockAudio() {
   if (audioUnlocked) return;
@@ -55,6 +57,29 @@ function unlockAudio() {
       sound.volume = 1;
     }
   });
+}
+
+function startBackgroundMusic() {
+  if (!bgSound) return;
+  bgSound.loop = true;
+  bgSound.muted = false;
+  bgSound.volume = 1;
+  if (!bgSound.paused) return;
+  void bgSound.play().catch(() => undefined);
+}
+
+function ensureBackgroundMusic() {
+  if (!bgSound) return;
+  startBackgroundMusic();
+  if (bgRetryId != null) return;
+  bgRetryId = setInterval(() => {
+    if (!bgSound.paused) {
+      clearInterval(bgRetryId!);
+      bgRetryId = null;
+      return;
+    }
+    startBackgroundMusic();
+  }, 1000) as unknown as number;
 }
 
 function formatTime(seconds: number): string {
@@ -298,7 +323,7 @@ function onMatch(
     removeTile(second);
     clearLine();
     if (isNoMoreTile()) {
-      notify("You win!!", false);
+      notify("You Win!!", false);
       displayAllCell();
       gameActive = false;
       stopTimer();
@@ -359,6 +384,7 @@ function newGame() {
 
   gameActive = true;
   startTimer();
+  ensureBackgroundMusic();
 
   gameContainer.style.width = `${
     HORIZON_AMOUNT * (TILE_SIZE + TILE_SPACE) + TILE_SPACE
@@ -391,6 +417,7 @@ function main() {
     newGame();
   });
   window.addEventListener("resize", applyResponsiveScale);
+  ensureBackgroundMusic();
 }
 
 declare global {

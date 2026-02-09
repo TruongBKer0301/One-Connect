@@ -1,6 +1,6 @@
 const VERTICAL_AMOUNT = 9;
 const HORIZON_AMOUNT = 16;
-const UNIQUE = 20;
+const UNIQUE = 72;
 const TILE_SIZE = 80;
 const TILE_SPACE = 8;
 const TILE_IMAGE_SIZE = 72;
